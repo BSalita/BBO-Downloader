@@ -188,7 +188,7 @@ end_date = datetime.now(timezone.utc).date() # user modifyable # or "2023-03-31"
 
 # initialize directory path to where data is to be stored.
 dataPath = pathlib.Path('e:/bridge/data/bbo/data') # user modifyable
-dataPath.mkdir(exist_ok=True)
+dataPath.mkdir(parents=True,exist_ok=True)
 
 # perform login
 
