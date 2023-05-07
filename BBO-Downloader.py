@@ -54,7 +54,7 @@ def BBO_Download_Lin_Files_Batch(session, start_date, end_date):
         assert results is not None, results
 
         travellerfilename = results.group(1)
-        print("{travellerfilename=}")
+        print(f"{travellerfilename=}")
 
         travellerusername = results.group(2)
         print(f"{travellerusername=}")
