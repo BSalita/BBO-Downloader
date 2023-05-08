@@ -14,18 +14,79 @@ from random import uniform
 import os
 from dotenv import load_dotenv # use pip install python-dotenv
 
-# nb: response.text uses unicode whereas response.content uses bytes
+cookies = {
+    "myhands_token":"bsalita%7C65fd9de9d4d9124bb9043672799d14187e5e90fb", # "/", "www.bridgebase.com"
+    "PHPSESSID":"8ld82a4hb2g409jnsif1538g95", # "/", "www.bridgebase.com",
+    "SRV": "www1.dal13.sl", #"/", ".bridgebase.com"
+}
+
+def BBO_Download_Lin_File(fetchlin, username):
+                
+    results = re.search(
+        r"^fetchlin\.php\?id\=(\d*)\&when\_played\=(\d*)$", fetchlin)
+    assert results is not None, results
+
+    lin_id = results.group(1)
+    print(f"{lin_id=}")
+
+    lin_epoch = int(results.group(2))
+    print(f"{lin_epoch=}")
+
+    dt = datetime.utcfromtimestamp(lin_epoch) # todo: check if utc is correct timezone.
+    dts = dt.strftime("%Y-%m-%d %H:%M:%S")
+    print(f"Date: {dts=}")
+
+    linfile = dataPath.joinpath(f"{lin_id}-{lin_epoch}-{username}.lin")
+    print(f"{linfile=}")
+    if not linfile.exists() or linfile.stat().st_size < 100:
+        lin_url = "https://www.bridgebase.com/myhands/" + fetchlin
+        response = session.get(lin_url, cookies=cookies)
+        assert response.status_code == 200, [lin_url, response.status_code]
+        assert 'Please login' not in response.text, 'Cookie failure? Try (re)logging into BBO using your browser.'
+        #print(response.text)
+        with open(linfile, 'w') as f: # todo: check if encoding='utf8' is needed for lin files
+            f.write(response.text)
+        # Sleep a random number of seconds (between 1 and 5)
+        sleep(uniform(.5, 2))
+
 
 def BBO_Download_Lin_Files_Batch(session, start_date, end_date):
+
     start_date_epoch = int(mktime(start_date.timetuple()))
     end_date_epoch = int(mktime(end_date.timetuple()))
     print(f"{start_date_epoch=} {end_date_epoch=}")
-    url = f"https://www.bridgebase.com/myhands/hands.php?username={BBO_USERNAME}&start_time=1675569600&end_time=1678161600"
+    url = f"https://www.bridgebase.com/myhands/hands.php?username={BBO_USERNAME}&start_time=1677801600&end_time=1680393600"
 
-    response = session.get(url, cookies={'cookie': cookies})
+#    for c in session.cookies.get_dict():
+#        print(f"\nsession-cookie: {c}:{session.cookies[c]}")
+#        cookies[c] = session.cookies[c]
+
+
+    response = session.get(url, cookies=cookies)
+    #driver = webdriver.Chrome()
+    #response = driver.get(url)
+    #driver.get(url)
+
+    #with open('hand-content.txt', 'w', encoding='utf8') as f: # using encoding='utf8' for content file
+    #    f.write(driver.page_source)
+
+
+    # Set the headers in the browser
+    #for key, value in headers.items():
+    #    driver.add_cookie({'name': key, 'value': value})
+
+    # Set the cookies in the browser
+    #for key, value in cookies.items():
+    #    driver.add_cookie({'name': key, 'value': value})
+
+    # Refresh the page to apply the cookies and headers
+    #driver.refresh()
+
+    #print(driver.page_source)
+
     assert response.status_code == 200, [url, response.status_code]
-    assert 'Please login' not in response.text, 'Cookie failure?'
 
+    #driver.execute_script(response.text)
     # print the response dictionary
     #print(f"{session}")  # .cookies) #.get_dict())
 
@@ -39,10 +100,10 @@ def BBO_Download_Lin_Files_Batch(session, start_date, end_date):
     with open('hand-content.txt', 'w', encoding='utf8') as f: # using encoding='utf8' for content file
         f.write(response.text)
 
+    assert 'Please login' not in response.text, 'Cookie failure? Try (re)logging into BBO using your browser.'
+
     soup = BeautifulSoup(response.content, "html.parser")
 
-    travellers_divs = soup.find_all("td", {"class": "traveller"})
-    #print(travellers_divs, len(travellers_divs), type(travellers_divs))
     travellers = soup.find_all("a", href=re.compile(r"^\/myhands\/hands\.php\?traveller\="))
 
     for traveller in travellers:
@@ -61,12 +122,12 @@ def BBO_Download_Lin_Files_Batch(session, start_date, end_date):
  
         travellerfile = dataPath.joinpath(f"traveler-{travellerfilename}.html")
         print(f"{travellerfile=}")
-        if not travellerfile.exists() or travellerfile.stat().st_size < 100:
+        if True: # not travellerfile.exists() or travellerfile.stat().st_size < 100:
             traveller_url = "https://www.bridgebase.com" + href # e.g. href=https://www.bridgebase.com/myhands/hands.php?traveller=57082-1678160881-70196899&amp;username=BBO_USERNAME
             # todo: use pd.read_html() instead?
-            response = session.get(traveller_url, cookies={'cookie': cookies})
+            response = session.get(traveller_url, cookies=cookies)
             assert response.status_code == 200, [traveller_url, response.status_code]
-            assert 'Please login' not in response.text, 'Cookie failure?'
+            assert 'Please login' not in response.text, 'Cookie failure? Try (re)logging into BBO using your browser.'
             #print(response.text)
             with open(travellerfile, 'w', encoding='utf8') as f: # using encoding='utf8' for html files
                 f.write(response.text)
@@ -74,16 +135,18 @@ def BBO_Download_Lin_Files_Batch(session, start_date, end_date):
             sleep(uniform(.5, 2))
 
             soup = BeautifulSoup(response.content, "html.parser")
+
             tourneySummary = soup.find("tr", {"class": "tourneySummary"})
             assert tourneySummary is not None
             # e.g. href="https://webutil.bridgebase.com/v2/tview.php?t=56336-1676144521&u=BBO_USERNAME" 
-            tourneyHRef = tourneySummary.find("td", {"class": "tourneyName"}).find('a')
-            assert tourneyHRef is not None
-            tourneyUrl = tourneyHRef['href']
+            tourneyName = tourneySummary.find("td", {"class": "tourneyName"})
+            assert tourneyName is not None
+            tourneyUrl = tourneyName.find('a')['href']
             # todo: use pd.read_html() instead?
-            response = session.get(tourneyUrl, cookies={'cookie': cookies})
+            # todo: explore tourneySummary file. It's rich in information such as player names.
+            response = session.get(tourneyUrl, cookies=cookies)
             assert response.status_code == 200, [tourneyUrl, response.status_code]
-            assert 'Please login' not in response.text, 'Cookie failure?'
+            assert 'Please login' not in response.text, 'Cookie failure? Try (re)logging into BBO using your browser.'
             #print(response.text)
             results = re.search(r'\?t\=(.*)\&',tourneyUrl)
             assert results is not None, tourneyUrl
@@ -94,8 +157,11 @@ def BBO_Download_Lin_Files_Batch(session, start_date, end_date):
             # Sleep a random number of seconds (between 1 and 5)
             sleep(uniform(.5, 2))
 
-            highlight = soup.find_all("tr", {"class": "highlight"})
+            highlight = soup.find("tr", {"class": "highlight"})
             assert highlight is not None
+            fetchlin = highlight.find('a',href=re.compile(r"^fetchlin"))['href']
+            assert fetchlin is not None
+            BBO_Download_Lin_File(fetchlin, BBO_USERNAME)
 
             tourneys = soup.find_all("tr", {"class": "tourney"})
             assert tourneys is not None
@@ -119,33 +185,9 @@ def BBO_Download_Lin_Files_Batch(session, start_date, end_date):
 
                 fetchlin = movie.find(href=re.compile(r"^fetchlin"))['href']
                 assert fetchlin is not None, movie
-
                 print(f"\n{fetchlin=}")
-                results = re.search(
-                    r"^fetchlin\.php\?id\=(\d*)\&when\_played\=(\d*)$", fetchlin)
-                assert results is not None, results
 
-                lin_id = results.group(1)
-                print(f"{lin_id=}")
-
-                lin_epoch = int(results.group(2))
-                print(f"{lin_epoch=}")
-                dt = datetime.utcfromtimestamp(lin_epoch) # todo: check if utc is correct timezone.
-                dts = dt.strftime("%Y-%m-%d %H:%M:%S")
-                print(f"Date: {dts=}")
-        
-                linfile = dataPath.joinpath(f"{lin_id}-{lin_epoch}-{tourneyUsername}.lin")
-                print(f"{linfile=}")
-                if not linfile.exists() or linfile.stat().st_size < 100:
-                    lin_url = "https://www.bridgebase.com/myhands/" + fetchlin
-                    response = session.get(lin_url, cookies={'cookie': cookies})
-                    assert response.status_code == 200, [lin_url, response.status_code]
-                    assert 'Please login' not in response.text, 'Cookie failure?'
-                    #print(response.text)
-                    with open(linfile, 'w') as f: # todo: check if encoding='utf8' is needed for lin files
-                        f.write(response.text)
-                    # Sleep a random number of seconds (between 1 and 5)
-                    sleep(uniform(.5, 2))
+                BBO_Download_Lin_File(fetchlin, tourneyUsername)
 
 
 def BBO_Download_Lin_Files(session, start_date, end_date):
@@ -180,7 +222,7 @@ BBO_PASSWORD = os.getenv('BBO_PASSWORD')
 assert BBO_PASSWORD is not None
 BBO_COOKIES = os.getenv('BBO_COOKIES') # cookie: myhands_token=BBO_USERNAME... # appears to be static
 assert BBO_COOKIES is not None
-cookies = BBO_COOKIES.replace('^','') # remove escapes '^' is windows character escape
+#cookies = BBO_COOKIES.replace('^','') # remove any escape characters such as '^' which is a windows escape character
 
 # Initialize start and end dates of desired downloads. Must be in YYYY-MM-DD format.
 start_date = "2023-01-01" # user modifyable
@@ -197,7 +239,8 @@ url = "https://www.bridgebase.com/myhands/myhands_login.php"
 
 data = {
     "username": BBO_USERNAME,
-    "password": BBO_PASSWORD
+    "password": BBO_PASSWORD,
+    'keep': True,
 }
 
 # Create a session object
@@ -224,7 +267,7 @@ else:
     print("Login failed.")
     quit()
 
-assert 'Please login' not in response.text, 'Cookie failure?'
+assert 'Please login' not in response.text, 'Cookie failure? Try (re)logging into BBO using your browser.'
 
 # perform file downloads
 
