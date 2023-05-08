@@ -180,8 +180,8 @@ def BBO_Download_Lin_Files_Batch(session, start_date, end_date):
             assert results is not None, tourneyUrl
             tourneyFile = dataPath.joinpath(
                 'tourney-'+results.group(1)+'-'+travellerusername+'.html')
-            print(f"{tourneyFile=} {travellerfile.exists()=}")
-            if not travellerfile.exists() or travellerfile.stat().st_size < 100:
+            print(f"{tourneyFile=} {tourneyFile.exists()=}")
+            if not tourneyFile.exists() or tourneyFile.stat().st_size < 100:
                 # using encoding='utf8' for html files
                 with open(tourneyFile, 'w', encoding='utf8') as f:
                     f.write(response.text)
