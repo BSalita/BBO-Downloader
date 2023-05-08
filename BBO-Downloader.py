@@ -1,5 +1,6 @@
 
-# todo: must re-login into bbo in the browser everyday because of expiration. I can't quite understand the flow to be able to reproduce here. Is it that session cookies have to be passed to requests?
+# todo: must re-login into bbo in the browser everyday because of expiration. I can't quite understand the flow. Has to do with login, cookies, expiration.
+# todo: File named tourney*-{BBO_USERNAME}.html) are rich with information such as player names. They should be explored, perhaps using pandas read_html()?
 
 # requires BBO_USERNAME, BBO_PASSWORD, BBO_COOKIES be put into .env file. The value of BBO_COOKIES can be obtained from browser dev tools. Cut and paste the long line starting with cookie: myhands_token=
 
@@ -73,7 +74,7 @@ def BBO_Download_Lin_Files_Batch(session, start_date, end_date):
     start_date_epoch = int(mktime(start_date.timetuple()))
     end_date_epoch = int(mktime(end_date.timetuple()))
     print(f"{start_date_epoch=} {end_date_epoch=}")
-    url = f"https://www.bridgebase.com/myhands/hands.php?username={BBO_USERNAME}&start_time=1677801600&end_time=1680393600"
+    url = f"https://www.bridgebase.com/myhands/hands.php?username={BBO_USERNAME}&start_time={start_date_epoch}&end_time={end_date_epoch}"
 
 #    for c in session.cookies.get_dict():
 #        print(f"\nsession-cookie: {c}:{session.cookies[c]}")
@@ -126,12 +127,14 @@ def BBO_Download_Lin_Files_Batch(session, start_date, end_date):
         r"^\/myhands\/hands\.php\?traveller\="))
 
     for traveller in travellers:
-        # e.g. href=/myhands/hands.php?traveller=56336-1676144521-31245064&amp;username=BBO_USERNAME
+        # e.g. href=/myhands/hands.php?traveller=56336-1676144521-31245064&amp;username={BBO_USERNAME}
         href = traveller["href"]
         print(f"\n{href=}")
         results = re.search(
             r"traveller\=(\d*\-\d*\-\d*).*username\=(.*)$", href)
-        assert results is not None, results
+        if results is None:
+            print(f"Unable to parse href for filename, username. Skipping.")
+            continue
 
         travellerfilename = results.group(1)
         print(f"{travellerfilename=}")
@@ -142,7 +145,7 @@ def BBO_Download_Lin_Files_Batch(session, start_date, end_date):
         travellerfile = dataPath.joinpath(f"traveler-{travellerfilename}.html")
         print(f"{travellerfile=}")
         if True:  # not travellerfile.exists() or travellerfile.stat().st_size < 100:
-            # e.g. href=https://www.bridgebase.com/myhands/hands.php?traveller=57082-1678160881-70196899&amp;username=BBO_USERNAME
+            # e.g. href=https://www.bridgebase.com/myhands/hands.php?traveller=57082-1678160881-70196899&amp;username={BBO_USERNAME}
             traveller_url = "https://www.bridgebase.com" + href
             print(f"{traveller_url=}")
             # todo: use pd.read_html() instead?
@@ -161,13 +164,13 @@ def BBO_Download_Lin_Files_Batch(session, start_date, end_date):
 
             tourneySummary = soup.find("tr", {"class": "tourneySummary"})
             assert tourneySummary is not None
-            # e.g. href="https://webutil.bridgebase.com/v2/tview.php?t=56336-1676144521&u=BBO_USERNAME"
+            # e.g. href=f"https://webutil.bridgebase.com/v2/tview.php?t=56336-1676144521&u={BBO_USERNAME}"
             tourneyName = tourneySummary.find("td", {"class": "tourneyName"})
             assert tourneyName is not None
             tourneyUrl = tourneyName.find('a')['href']
             print(f"{tourneyUrl=}")
             # todo: use pd.read_html() instead?
-            # todo: explore tourneySummary file (tourney*-BBO_USERNAME.html). It's rich in information such as player names.
+            # todo: explore tourneySummary file (tourney*-{BBO_USERNAME}.html). It's rich in information such as player names.
             response = session.get(tourneyUrl, cookies=cookies)
             assert response.status_code == 200, [
                 tourneyUrl, response.status_code]
@@ -250,6 +253,8 @@ BBO_USERNAME = os.getenv('BBO_USERNAME')
 assert BBO_USERNAME is not None
 BBO_PASSWORD = os.getenv('BBO_PASSWORD')
 assert BBO_PASSWORD is not None
+
+# todo: this cookie code has been disabled until the interaction between cookies, login and expiration is understood.
 # cookie: myhands_token=BBO_USERNAME... # appears to be static
 BBO_COOKIES = os.getenv('BBO_COOKIES')
 assert BBO_COOKIES is not None
