@@ -144,7 +144,7 @@ def BBO_Download_Lin_Files_Batch(session, start_date, end_date):
 
         travellerfile = dataPath.joinpath(f"traveler-{travellerfilename}.html")
         print(f"{travellerfile=}")
-        if True:  # not travellerfile.exists() or travellerfile.stat().st_size < 100:
+        if not travellerfile.exists() or travellerfile.stat().st_size < 100:
             # e.g. href=https://www.bridgebase.com/myhands/hands.php?traveller=57082-1678160881-70196899&amp;username={BBO_USERNAME}
             traveller_url = "https://www.bridgebase.com" + href
             print(f"{traveller_url=}")
@@ -167,10 +167,11 @@ def BBO_Download_Lin_Files_Batch(session, start_date, end_date):
             # e.g. href=f"https://webutil.bridgebase.com/v2/tview.php?t=56336-1676144521&u={BBO_USERNAME}"
             tourneyName = tourneySummary.find("td", {"class": "tourneyName"})
             assert tourneyName is not None
+            # todo: rereads same file for every traveler file of same tourney. how to make it skip? create dict where?
             tourneyUrl = tourneyName.find('a')['href']
             print(f"{tourneyUrl=}")
             # todo: use pd.read_html() instead?
-            # todo: explore tourneySummary file (tourney*-{BBO_USERNAME}.html). It's rich in information such as player names.
+            # todo: explore tourneySummary file (tourney*-{BBO_USERNAME}.html). It's rich in information such as some player names although I don't see the mechanism for retrieving them.
             response = session.get(tourneyUrl, cookies=cookies)
             assert response.status_code == 200, [
                 tourneyUrl, response.status_code]
@@ -246,68 +247,73 @@ def BBO_Download_Lin_Files(session, start_date, end_date):
         start_date_dt = next_month_dt
 
 
-# initialize global variables
-load_dotenv()
+def BBO_login(session, BBO_USERNAME, BBO_PASSWORD, BBO_COOKIES):
+    
+    # perform login
 
-# Initialize BBO_USERNAME, BBO_PASSWORD, BBO_COOKIES. They come from environment variables or from .env file. Requires that you create .env file containing your private values.
-BBO_USERNAME = os.getenv('BBO_USERNAME')
-assert BBO_USERNAME is not None
-BBO_PASSWORD = os.getenv('BBO_PASSWORD')
-assert BBO_PASSWORD is not None
+    # Specify the login page URL and login credentials
+    url = "https://www.bridgebase.com/myhands/myhands_login.php"
 
-# todo: this cookie code has been disabled until the interaction between cookies, login and expiration is understood.
-# cookie: myhands_token=BBO_USERNAME... # appears to be static
-BBO_COOKIES = os.getenv('BBO_COOKIES')
-assert BBO_COOKIES is not None
-# cookies = BBO_COOKIES.replace('^','') # remove any escape characters such as '^' which is a windows escape character
+    data = {
+        "username": BBO_USERNAME,
+        "password": BBO_PASSWORD,
+        'keep': True,
+    }
 
-# Initialize start and end dates of desired downloads. Must be in YYYY-MM-DD format.
-start_date = "2023-01-01"  # user modifyable
-# user modifyable # or "2023-03-31" # todo: check if utc is correct timezone.
-end_date = datetime.now(timezone.utc).date()
+    # Send a POST request to the login page with the payload to log in
+    response = session.post(url, data=data)
 
-# initialize directory path to where data is to be stored.
-dataPath = pathlib.Path('e:/bridge/data/bbo/data')  # user modifyable
-dataPath.mkdir(parents=True, exist_ok=True)
+    print(f"{session.cookies=}")
 
-# perform login
+    print(f"{response=}")
 
-# Specify the login page URL and login credentials
-url = "https://www.bridgebase.com/myhands/myhands_login.php"
-
-data = {
-    "username": BBO_USERNAME,
-    "password": BBO_PASSWORD,
-    'keep': True,
-}
-
-# Create a session object
-session = requests.Session()
-
-# Send a POST request to the login page with the payload to log in
-response = session.post(url, data=data)
-
-print(f"{session.cookies=}")
-
-print(f"{response=}")
-
-for c in session.cookies.get_dict():
-    print(f"login-cookie: {c}:{session.cookies[c]}")
-
-with open('login-cookies.txt', 'w', encoding='utf8') as f:  # using encoding='utf8' for cookies file
     for c in session.cookies.get_dict():
-        f.write(session.cookies[c])
+        print(f"login-cookie: {c}:{session.cookies[c]}")
 
-# Check if the login was successful by examining the response object
-if response.status_code == 200:
-    print("Login successful!")
-else:
-    print("Login failed.")
-    quit()
+    with open('login-cookies.txt', 'w', encoding='utf8') as f:  # using encoding='utf8' for cookies file
+        for c in session.cookies.get_dict():
+            f.write(session.cookies[c])
 
-assert 'Please login' not in response.text, 'Cookie failure? Try (re)logging into BBO using your browser.'
+    # Check if the login was successful by examining the response object
+    if response.status_code == 200:
+        print("Login successful!")
+    else:
+        print("Login failed.")
+        quit()
 
-# perform file downloads
+    assert 'Please login' not in response.text, 'Cookie failure? Try (re)logging into BBO using your browser.'
 
-# Call the function with start and end dates
-BBO_Download_Lin_Files(session, start_date, end_date)
+
+if __name__ == '__main__':
+
+    # initialize global variables
+    load_dotenv()
+
+    # Initialize BBO_USERNAME, BBO_PASSWORD, BBO_COOKIES. They come from environment variables or from .env file. Requires that you create .env file containing your private values.
+    BBO_USERNAME = os.getenv('BBO_USERNAME')
+    assert BBO_USERNAME is not None
+    BBO_PASSWORD = os.getenv('BBO_PASSWORD')
+    assert BBO_PASSWORD is not None
+
+    # todo: this cookie code has been disabled until the interaction between cookies, login and expiration is understood.
+    # cookie: myhands_token=BBO_USERNAME... # appears to be static
+    BBO_COOKIES = os.getenv('BBO_COOKIES')
+    assert BBO_COOKIES is not None
+    # cookies = BBO_COOKIES.replace('^','') # remove any escape characters such as '^' which is a windows escape character
+
+    # Initialize start and end dates of desired downloads. Must be in YYYY-MM-DD format.
+    start_date = "2023-01-01"  # user modifyable
+    # user modifyable # or "2023-03-31" # todo: check if utc is correct timezone.
+    end_date = datetime.now(timezone.utc).date()
+
+    # initialize directory path to where data is to be stored.
+    dataPath = pathlib.Path('e:/bridge/data/bbo/data')  # user modifyable
+    dataPath.mkdir(parents=True, exist_ok=True)
+
+    # Create a session object
+    session = requests.Session()
+
+    BBO_login(session, BBO_USERNAME, BBO_PASSWORD, BBO_COOKIES)
+
+    # perform file downloads for specified date range
+    BBO_Download_Lin_Files(session, start_date, end_date)
