@@ -1,6 +1,7 @@
 
-# todo: must re-login into bbo in the browser everyday because of expiration. I can't quite understand the flow. Has to do with login, cookies, expiration.
-# todo: File named tourney*-{BBO_USERNAME}.html) are rich with information such as player names. They should be explored, perhaps using pandas read_html()?
+# todo: must re-login into bbo in the browser everyday because of expiration. I can't quite understand the flow to avoid that. Has to do with interaction between login, cookies, expiration.
+# todo: File named tourney*-{BBO_USERNAME}.html) are rich with information such as player names (oh wait, I don't see how that's done). They should be explored, perhaps using pandas read_html()?
+# todo: use try statement to catch and retry connection errors
 
 # requires BBO_USERNAME, BBO_PASSWORD, BBO_COOKIES be put into .env file. The value of BBO_COOKIES can be obtained from browser dev tools. Cut and paste the long line starting with cookie: myhands_token=
 
@@ -60,7 +61,7 @@ def BBO_Download_Lin_File(session, fetchlin, username):
     else:
         lin_url = "https://www.bridgebase.com/myhands/" + fetchlin
         print(f"{lin_url=}")
-        response = session.get(lin_url, cookies=cookies)
+        response = session.get(lin_url, cookies=cookies) # todo: use try statement to catch and retry connection errors
         assert response.status_code == 200, [lin_url, response.status_code]
         assert 'Please login' not in response.text, 'Cookie failure? Try (re)logging into BBO using your browser.'
         # print(response.text)
@@ -82,9 +83,9 @@ def BBO_Download_Lin_Files_Batch(session, start_date, end_date, username):
 #        print(f"\nsession-cookie: {c}:{session.cookies[c]}")
 #        cookies[c] = session.cookies[c]
 
-    response = session.get(url, cookies=cookies)
+    response = session.get(url, cookies=cookies) # todo: use try statement to catch and retry connection errors
     #driver = webdriver.Chrome()
-    #response = driver.get(url)
+    #response = driver.get(url) # todo: use try statement to catch and retry connection errors
     # driver.get(url)
 
     # with open('hand-content.txt', 'w', encoding='utf8') as f: # using encoding='utf8' for content file
@@ -158,7 +159,7 @@ def BBO_Download_Lin_Files_Batch(session, start_date, end_date, username):
             traveller_url = "https://www.bridgebase.com" + href
             print(f"{traveller_url=}")
             # todo: use pd.read_html() instead?
-            response = session.get(traveller_url, cookies=cookies)
+            response = session.get(traveller_url, cookies=cookies) # todo: use try statement to catch and retry connection errors
             assert response.status_code == 200, [
                 traveller_url, response.status_code]
             assert 'Please login' not in response.text, 'Cookie failure? Try (re)logging into BBO using your browser.'
@@ -184,7 +185,7 @@ def BBO_Download_Lin_Files_Batch(session, start_date, end_date, username):
             print(f"{tourneyUrl=}")
             # todo: use pd.read_html() instead?
             # todo: explore tourneySummary file (tourney*-{username}.html). It's rich in information such as some player names although I don't see the mechanism for retrieving them.
-            response = session.get(tourneyUrl, cookies=cookies)
+            response = session.get(tourneyUrl, cookies=cookies) # todo: use try statement to catch and retry connection errors
             assert response.status_code == 200, [
                 tourneyUrl, response.status_code]
             assert 'Please login' not in response.text, 'Cookie failure? Try (re)logging into BBO using your browser.'
@@ -275,7 +276,7 @@ def BBO_login(session, username, password):
     }
 
     # Send a POST request to the login page with the payload to log in
-    response = session.post(url, data=data)
+    response = session.post(url, data=data) # todo: use try statement to catch and retry connection errors
 
     print(f"{session.cookies=}")
 
