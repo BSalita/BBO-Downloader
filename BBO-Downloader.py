@@ -1,3 +1,12 @@
+# downloads BBO .lin files by username and date range.
+
+# next steps:
+# bbo_parse_lin_files.ipynb creates bbo_bidding_sequences_table.py which is a table of all known BBO bids.
+# acbl_club_results_hand_records_bidding_BBO.ipynb augments acbl club hand records with BBO bidding sequences.
+
+# previous steps:
+# none
+
 
 # todo: must re-login into bbo in the browser everyday because of expiration. I can't quite understand the flow to avoid that. Has to do with interaction between login, cookies, expiration.
 # todo: File named tourney*-{BBO_USERNAME}.html) are rich with information such as player names (oh wait, I don't see how that's done). They should be explored, perhaps using pandas read_html()?
@@ -23,8 +32,8 @@ from dotenv import load_dotenv  # use pip install python-dotenv
 # The cookies dict below are copy and pasted values from the 'copy as powershell'.
 $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
 $session.Cookies.Add((New-Object System.Net.Cookie("myhands_token", "bsalita%7C65fd9de9d4d9124bb9043672799d14187e5e90fb", "/", "www.bridgebase.com")))
-$session.Cookies.Add((New-Object System.Net.Cookie("PHPSESSID", "8ld82a4hb2g409jnsif1538g95", "/", "www.bridgebase.com")))
-$session.Cookies.Add((New-Object System.Net.Cookie("SRV", "www1.dal13.sl", "/", ".bridgebase.com")))
+$session.Cookies.Add((New-Object System.Net.Cookie("PHPSESSID", "mbtmquei21fpieofv1irajvfrf", "/", "www.bridgebase.com")))
+$session.Cookies.Add((New-Object System.Net.Cookie("SRV", "www1.dal10.sl", "/", ".bridgebase.com")))
 Invoke-WebRequest -OutFile o.html -UseBasicParsing -Uri "https://www.bridgebase.com/myhands/hands.php?username=bsalita&start_time=1677801600&end_time=1680393600" `
 -WebSession $session
  """
@@ -32,8 +41,8 @@ Invoke-WebRequest -OutFile o.html -UseBasicParsing -Uri "https://www.bridgebase.
 cookies = {
     # "/", "www.bridgebase.com"
     "myhands_token": "bsalita%7C65fd9de9d4d9124bb9043672799d14187e5e90fb",
-    "PHPSESSID": "8ld82a4hb2g409jnsif1538g95",  # "/", "www.bridgebase.com",
-    "SRV": "www1.dal13.sl",  # "/", ".bridgebase.com"
+    "PHPSESSID": "mbtmquei21fpieofv1irajvfrf",  # "/", "www.bridgebase.com", # must be refreshed from time-to-time
+    "SRV": "www1.dal10.sl",  # "/", ".bridgebase.com" # must be refreshed from time-to-time
 }
 
 
@@ -331,9 +340,108 @@ if __name__ == '__main__':
 
     BBO_login(session, BBO_USERNAME, BBO_PASSWORD)
 
-    # provide a username. It can be the username of any BBO player.
-    username = 'bsalita'
-    username = 'Leo LaSota'
-
-    # perform file downloads for specified date range
-    BBO_Download_Lin_Files(session, start_date, end_date, username)
+    # provide usernames of players who you wish to have their lin files downloaded. Any BBO player can be requested.
+    # files will now be downloaded. if the files are already downloaded, processing will be bypassed until non-downloaded files are encounted. This makes restarts very quick.
+    usernames = ['Leo LaSota',
+    'bsalita',
+    'run4it',
+    'hahahapc',
+    'mimihand',
+    'patsy15',
+    'Teacher916',
+    'ps1352',
+    'wannagolf5',
+    'bkjswan',
+    'GDBraiser',
+    'Vandy7',
+    'frj22',
+    'RROOZZ1513',
+    'ljshear',
+    'rosewhite',
+    'beatmama',
+    'spareo',
+    'HeleneG11',
+    'adahnick',
+    'keisler',
+    'ioaia',
+    'ShuShu2',
+    'sil4',
+    'bakh123',
+    'dharam10',
+    'laughlin',
+    'verajohn',
+    'MarciaKnow',
+    'nanag05420',
+    'Slqppy1',
+    'binsk',
+    'Calplayer9',
+    'annalisae',
+    'hagemimi',
+    'Callo2',
+    'wallaceng',
+    'campbeconn',
+    'fritz49',
+    'Sweetpea66',
+    'di28374',
+    'fergie0809',
+    'maryw76',
+    'TahoeView',
+    'riverwalk3',
+    'leplbr4321',
+    'ginfuller',
+    'lorna216',
+    'Hobo Jo',
+    'jmino',
+    'srenee',
+    'crdsnrkt55',
+    'dd5times',
+    'Bcmom92',
+    'bubbasween',
+    'BernPorter',
+    'amymack',
+    'gpappalard',
+    'fusion13',
+    'vandood',
+    'dgf4578282',
+    'BIGBIRD48',
+    'hichan',
+    'badnews',
+    'kathleen02',
+    'lms2',
+    'shaglady76',
+    'margiebroo',
+    'shark 2020',
+    'mules422',
+    'Smittycity',
+    'kimpton',
+    'jhlowy',
+    'bellgol',
+    'GT0903',
+    'Twin454s',
+    'Elle777',
+    'llooiiee',
+    'Hawkmoon1',
+    'donalde',
+    'kahus',
+    'diannee',
+    'PuppySr',
+    'radcat',
+    'Pefuller33',
+    'cbiaspen',
+    'rlb1953',
+    'NashP1',
+    'majov',
+    'crdninja',
+    'janewriter',
+    'levrose',
+    'BetteC8989',
+    'kjbourne',
+    'marincarol',
+    'FrannieK',
+    'outrage',
+    'soleil601',
+    'volvoo',
+    'lengold']
+    for username in usernames: # download lin files of some frequent players
+        # perform file downloads for specified date range
+        BBO_Download_Lin_Files(session, start_date, end_date, username)
