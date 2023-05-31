@@ -6,3 +6,6 @@ Project to download BBO lin and traveler files. BBO is an online contract duplic
 
 # To run:
     python BBO-Downloader.py
+    
+## Related Projects
+For a list of related projects see: https://github.com/BSalita/BridgeStats
