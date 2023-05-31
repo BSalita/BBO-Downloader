@@ -1,5 +1,5 @@
 # BBO-Downloader
-Project to download BBO lin and traveler files. BBO is an online contract duplicate bridge gaming website. Not supported. Not end user friendly. Requires python programming knowledge.
+Project to download BBO lin and traveler files. BBO is an online contract duplicate bridge gaming website. The project is unsupported, and not end user friendly. Requires python programming knowledge.
 
 # Dependencies:
 - Python 3.8+
