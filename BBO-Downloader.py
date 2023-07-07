@@ -266,7 +266,7 @@ if __name__ == '__main__':
     # lin files will now be downloaded. Files already existing in the local download directory will not be re-downloaded. This makes restarts very quick.
 
     with open('bbo_usernames.txt','r') as f:
-        usernames = f.readlines()
+        usernames = f.read().split('\n')
 
     for username in usernames:  # download lin files of some frequent players
         # perform file downloads for specified date range
