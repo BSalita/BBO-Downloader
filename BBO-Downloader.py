@@ -8,11 +8,11 @@
 # none
 
 
-# todo: must re-login into bbo in the browser everyday because of expiration. I can't quite understand the flow to avoid that. Has to do with interaction between login, cookies, expiration.
+# todo: must re-login into bbo in the browser everyday(?) because of expiration. I can't quite understand the flow to avoid that.
 # todo: File named tourney*-{BBO_USERNAME}.html) are rich with information such as player names (oh wait, I don't see how that's done). They should be explored, perhaps using pandas read_html()?
 # todo: use try statement to catch and retry connection errors
 
-# requires BBO_USERNAME, BBO_PASSWORD, BBO_COOKIES be put into .env file. The value of BBO_COOKIES can be obtained from browser dev tools. Cut and paste the long line starting with cookie: myhands_token=
+# requires BBO_USERNAME, BBO_PASSWORD be put into .env file.
 
 import requests
 from bs4 import BeautifulSoup
@@ -24,27 +24,6 @@ from time import sleep, mktime
 from random import uniform
 import os
 from dotenv import load_dotenv  # use pip install python-dotenv
-
-"""
-# Not sure what's going on with cookies and login. Sometimes this source file's request() fails to return the expected html instead returning html asking for login. Probably once every 24 hours.
-# What seems to anecdotally fix the issue is to login to your BBO account then execute the below powershell command. If it works, you're good to restart this program.
-# The below command is a canonical BBO WebRequest, cut down from selecting 'copy as powershell' using dev tools in the chrome.
-# The cookies dict below are copy and pasted values from the 'copy as powershell'.
-$session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
-$session.Cookies.Add((New-Object System.Net.Cookie("myhands_token", "bsalita%7C65fd9de9d4d9124bb9043672799d14187e5e90fb", "/", "www.bridgebase.com")))
-$session.Cookies.Add((New-Object System.Net.Cookie("PHPSESSID", "mbtmquei21fpieofv1irajvfrf", "/", "www.bridgebase.com")))
-$session.Cookies.Add((New-Object System.Net.Cookie("SRV", "www1.dal10.sl", "/", ".bridgebase.com")))
-Invoke-WebRequest -OutFile o.html -UseBasicParsing -Uri "https://www.bridgebase.com/myhands/hands.php?username=bsalita&start_time=1677801600&end_time=1680393600" `
--WebSession $session
- """
-
-cookies = {
-    # "/", "www.bridgebase.com"
-    "myhands_token": "bsalita%7C65fd9de9d4d9124bb9043672799d14187e5e90fb",
-    "PHPSESSID": "mbtmquei21fpieofv1irajvfrf",  # "/", "www.bridgebase.com", # must be refreshed from time-to-time
-    "SRV": "www1.dal10.sl",  # "/", ".bridgebase.com" # must be refreshed from time-to-time
-}
-
 
 def BBO_Download_Lin_File(session, fetchlin, username):
 
@@ -70,9 +49,10 @@ def BBO_Download_Lin_File(session, fetchlin, username):
     else:
         lin_url = "https://www.bridgebase.com/myhands/" + fetchlin
         print(f"{lin_url=}")
-        response = session.get(lin_url, cookies=cookies) # todo: use try statement to catch and retry connection errors
+        # todo: use try statement to catch and retry connection errors
+        response = session.get(lin_url)
         assert response.status_code == 200, [lin_url, response.status_code]
-        assert 'Please login' not in response.text, 'Cookie failure? Try (re)logging into BBO using your browser.'
+        assert 'Please login' not in response.text, 'BBO_Download_Lin_File: Cookie expiration? Try (re)logging into BBO using your browser.'
         # print(response.text)
         # encoding='utf8' was needed for 3338576362-1678052162-Susie Q46.lin
         with open(linfile, 'w', encoding='utf8') as f:
@@ -86,54 +66,13 @@ def BBO_Download_Lin_Files_Batch(session, start_date, end_date, username):
     start_date_epoch = int(mktime(start_date.timetuple()))
     end_date_epoch = int(mktime(end_date.timetuple()))
     print(f"{start_date_epoch=} {end_date_epoch=}")
+
     url = f"https://www.bridgebase.com/myhands/hands.php?username={username}&start_time={start_date_epoch}&end_time={end_date_epoch}"
-
-#    for c in session.cookies.get_dict():
-#        print(f"\nsession-cookie: {c}:{session.cookies[c]}")
-#        cookies[c] = session.cookies[c]
-
-    response = session.get(url, cookies=cookies) # todo: use try statement to catch and retry connection errors
-    #driver = webdriver.Chrome()
-    #response = driver.get(url) # todo: use try statement to catch and retry connection errors
-    # driver.get(url)
-
-    # with open('hand-content.txt', 'w', encoding='utf8') as f: # using encoding='utf8' for content file
-    #    f.write(driver.page_source)
-
-    # Set the headers in the browser
-    # for key, value in headers.items():
-    #    driver.add_cookie({'name': key, 'value': value})
-
-    # Set the cookies in the browser
-    # for key, value in cookies.items():
-    #    driver.add_cookie({'name': key, 'value': value})
-
-    # Refresh the page to apply the cookies and headers
-    # driver.refresh()
-
-    # print(driver.page_source)
-
+    print('\nget:', url)
+    # todo: use try statement to catch and retry connection errors
+    response = session.get(url)
     assert response.status_code == 200, [url, response.status_code]
-    assert 'Please login' not in response.text, 'Cookie failure? Try (re)logging into BBO using your browser.'
-    assert 'Javascript support is needed' not in response.text, 'Cookie failure? Try (re)logging into BBO using your browser.'
-
-    # driver.execute_script(response.text)
-    # print the response dictionary
-    # print(f"{session}")  # .cookies) #.get_dict())
-
-    for c in session.cookies.get_dict():
-        print(f"\nsession-cookie: {c}:{session.cookies[c]}")
-
-    # using encoding='utf8' for cookie file
-    with open('hands-cookies.txt', 'w', encoding='utf8') as f:
-        for c in session.cookies.get_dict():
-            f.write(session.cookies[c])
-
-    # using encoding='utf8' for content file
-    with open('hand-content.txt', 'w', encoding='utf8') as f:
-        f.write(response.text)
-
-    assert 'Please login' not in response.text, 'Cookie failure? Try (re)logging into BBO using your browser.'
+    assert 'Please login' not in response.text, 'BBO_Download_Lin_Files_Batch: expiration? Try (re)logging into BBO using your browser.'
 
     soup = BeautifulSoup(response.content, "html.parser")
 
@@ -168,10 +107,11 @@ def BBO_Download_Lin_Files_Batch(session, start_date, end_date, username):
             traveller_url = "https://www.bridgebase.com" + href
             print(f"{traveller_url=}")
             # todo: use pd.read_html() instead?
-            response = session.get(traveller_url, cookies=cookies) # todo: use try statement to catch and retry connection errors
+            # todo: use try statement to catch and retry connection errors
+            response = session.get(traveller_url)
             assert response.status_code == 200, [
                 traveller_url, response.status_code]
-            assert 'Please login' not in response.text, 'Cookie failure? Try (re)logging into BBO using your browser.'
+            assert 'Please login' not in response.text, 'BBO_Download_Lin_Files_Batch: Cookie expiration? Try (re)logging into BBO using your browser.'
             # print(response.text)
             # using encoding='utf8' for html files
             with open(travellerfile, 'w', encoding='utf8') as f:
@@ -194,10 +134,11 @@ def BBO_Download_Lin_Files_Batch(session, start_date, end_date, username):
             print(f"{tourneyUrl=}")
             # todo: use pd.read_html() instead?
             # todo: explore tourneySummary file (tourney*-{username}.html). It's rich in information such as some player names although I don't see the mechanism for retrieving them.
-            response = session.get(tourneyUrl, cookies=cookies) # todo: use try statement to catch and retry connection errors
+            # todo: use try statement to catch and retry connection errors
+            response = session.get(tourneyUrl)
             assert response.status_code == 200, [
                 tourneyUrl, response.status_code]
-            assert 'Please login' not in response.text, 'Cookie failure? Try (re)logging into BBO using your browser.'
+            assert 'Please login' not in response.text, 'BBO_Download_Lin_Files_Batch: Cookie expiration? Try (re)logging into BBO using your browser.'
             # print(response.text)
             results = re.search(r'\?t\=(.*)\&', tourneyUrl)
             assert results is not None, tourneyUrl
@@ -275,38 +216,25 @@ def BBO_login(session, username, password):
 
     # perform login
 
-    # Specify the login page URL and login credentials
-    url = "https://www.bridgebase.com/myhands/myhands_login.php"
-
+    login_url = "https://www.bridgebase.com/myhands/myhands_login.php?t=%2Fmyhands%2Findex.php%3F"
     data = {
-        "username": username,
-        "password": password,
+        "username": BBO_USERNAME,
+        "password": BBO_PASSWORD,
         'keep': True,
     }
+    print('post login_url:', login_url)
+    response = session.post(login_url, data=data)
+    assert response.status_code == 200, [login_url, response.status_code]
+    assert 'Please login' not in response.text, 'BBO_login: login failure. Try (re)logging into BBO using your browser.'
 
-    # Send a POST request to the login page with the payload to log in
-    response = session.post(url, data=data) # todo: use try statement to catch and retry connection errors
+    index_url = "http://www.bridgebase.com/myhands/index.php?offset=0"
+    print('get index_url:', index_url)
+    # todo: use try statement to catch and retry connection errors
+    response = session.get(index_url)
+    assert response.status_code == 200, [index_url, response.status_code]
+    assert 'Please login' not in response.text, 'BBO_login: login failure. Try (re)logging into BBO using your browser.'
 
-    print(f"{session.cookies=}")
-
-    print(f"{response=}")
-
-    for c in session.cookies.get_dict():
-        print(f"login-cookie: {c}:{session.cookies[c]}")
-
-    # using encoding='utf8' for cookies file
-    with open('login-cookies.txt', 'w', encoding='utf8') as f:
-        for c in session.cookies.get_dict():
-            f.write(session.cookies[c])
-
-    # Check if the login was successful by examining the response object
-    if response.status_code == 200:
-        print("Login successful!")
-    else:
-        print("Login failed.")
-        quit()
-
-    assert 'Please login' not in response.text, 'Cookie failure? Try (re)logging into BBO using your browser.'
+    return response
 
 
 if __name__ == '__main__':
@@ -314,17 +242,11 @@ if __name__ == '__main__':
     # initialize global variables
     load_dotenv()
 
-    # Initialize BBO_USERNAME, BBO_PASSWORD, BBO_COOKIES. They come from environment variables or from .env file. Requires that you create .env file containing your private values.
+    # Initialize BBO_USERNAME, BBO_PASSWORD. They come from environment variables or from .env file. Requires that you create .env file containing your private values.
     BBO_USERNAME = os.getenv('BBO_USERNAME')
     assert BBO_USERNAME is not None
     BBO_PASSWORD = os.getenv('BBO_PASSWORD')
     assert BBO_PASSWORD is not None
-
-    # todo: this cookie code has been disabled until the interaction between cookies, login and expiration is understood.
-    # cookie: myhands_token=BBO_USERNAME... # appears to be static
-    BBO_COOKIES = os.getenv('BBO_COOKIES')
-    assert BBO_COOKIES is not None
-    # cookies = BBO_COOKIES.replace('^','') # remove any escape characters such as '^' which is a windows escape character
 
     # Initialize start and end dates of desired downloads. Must be in YYYY-MM-DD format.
     start_date = "2023-01-01"  # user modifyable
@@ -335,113 +257,17 @@ if __name__ == '__main__':
     dataPath = pathlib.Path('e:/bridge/data/bbo/data')  # user modifyable
     dataPath.mkdir(parents=True, exist_ok=True)
 
-    # Create a session object
+    print('creating session object')
     session = requests.Session()
 
     BBO_login(session, BBO_USERNAME, BBO_PASSWORD)
 
-    # provide usernames of players who you wish to have their lin files downloaded. Any BBO player can be requested.
-    # files will now be downloaded. if the files are already downloaded, processing will be bypassed until non-downloaded files are encounted. This makes restarts very quick.
-    usernames = ['Leo LaSota',
-    'bsalita',
-    'run4it',
-    'hahahapc',
-    'mimihand',
-    'patsy15',
-    'Teacher916',
-    'ps1352',
-    'wannagolf5',
-    'bkjswan',
-    'GDBraiser',
-    'Vandy7',
-    'frj22',
-    'RROOZZ1513',
-    'ljshear',
-    'rosewhite',
-    'beatmama',
-    'spareo',
-    'HeleneG11',
-    'adahnick',
-    'keisler',
-    'ioaia',
-    'ShuShu2',
-    'sil4',
-    'bakh123',
-    'dharam10',
-    'laughlin',
-    'verajohn',
-    'MarciaKnow',
-    'nanag05420',
-    'Slqppy1',
-    'binsk',
-    'Calplayer9',
-    'annalisae',
-    'hagemimi',
-    'Callo2',
-    'wallaceng',
-    'campbeconn',
-    'fritz49',
-    'Sweetpea66',
-    'di28374',
-    'fergie0809',
-    'maryw76',
-    'TahoeView',
-    'riverwalk3',
-    'leplbr4321',
-    'ginfuller',
-    'lorna216',
-    'Hobo Jo',
-    'jmino',
-    'srenee',
-    'crdsnrkt55',
-    'dd5times',
-    'Bcmom92',
-    'bubbasween',
-    'BernPorter',
-    'amymack',
-    'gpappalard',
-    'fusion13',
-    'vandood',
-    'dgf4578282',
-    'BIGBIRD48',
-    'hichan',
-    'badnews',
-    'kathleen02',
-    'lms2',
-    'shaglady76',
-    'margiebroo',
-    'shark 2020',
-    'mules422',
-    'Smittycity',
-    'kimpton',
-    'jhlowy',
-    'bellgol',
-    'GT0903',
-    'Twin454s',
-    'Elle777',
-    'llooiiee',
-    'Hawkmoon1',
-    'donalde',
-    'kahus',
-    'diannee',
-    'PuppySr',
-    'radcat',
-    'Pefuller33',
-    'cbiaspen',
-    'rlb1953',
-    'NashP1',
-    'majov',
-    'crdninja',
-    'janewriter',
-    'levrose',
-    'BetteC8989',
-    'kjbourne',
-    'marincarol',
-    'FrannieK',
-    'outrage',
-    'soleil601',
-    'volvoo',
-    'lengold']
-    for username in usernames: # download lin files of some frequent players
+    # read a list of bbo usernames to have their lin files downloaded. Any BBO player can be requested by any other user.
+    # lin files will now be downloaded. Files already existing in the local download directory will not be re-downloaded. This makes restarts very quick.
+
+    with open('bbo_usernames.txt','r') as f:
+        usernames = f.readlines()
+
+    for username in usernames:  # download lin files of some frequent players
         # perform file downloads for specified date range
         BBO_Download_Lin_Files(session, start_date, end_date, username)
