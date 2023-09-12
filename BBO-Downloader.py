@@ -42,7 +42,11 @@ def BBO_Download_Lin_File(session, fetchlin, username):
     dts = dt.strftime("%Y-%m-%d %H:%M:%S")
     print(f"Date: {dts=}")
 
-    linfile = dataPath.joinpath(f"{lin_id}-{lin_epoch}-{username}.lin")
+    linpath = dataPath.joinpath(username)
+    if not linpath.exists():
+        print(f"mkdir: {linpath}")
+        linpath.mkdir()
+    linfile = linpath.joinpath(f"{lin_id}-{lin_epoch}-{username}.lin")
     print(f"{linfile=}")
     if linfile.exists() and linfile.stat().st_size > 100:
         print(f"{linfile=} exists. Skipping.")
@@ -71,7 +75,7 @@ def BBO_Download_Lin_Files_Batch(session, start_date, end_date, username):
     print('\nget:', url)
     # todo: use try statement to catch and retry connection errors
     response = session.get(url)
-    assert response.status_code == 200, [url, response.status_code]
+    assert response.status_code == 200, [url, response.status_code] # todo: need to retry error 500?
     assert 'Please login' not in response.text, 'BBO_Download_Lin_Files_Batch: expiration? Try (re)logging into BBO using your browser.'
 
     soup = BeautifulSoup(response.content, "html.parser")
