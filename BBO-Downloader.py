@@ -7,12 +7,12 @@
 # previous steps:
 # none
 
-
-# todo: must re-login into bbo in the browser everyday(?) because of expiration. I can't quite understand the flow to avoid that.
+# todo: vscode shows a dozen or so warnings which need to be resolved.
 # todo: File named tourney*-{BBO_USERNAME}.html) are rich with information such as player names (oh wait, I don't see how that's done). They should be explored, perhaps using pandas read_html()?
 # todo: use try statement to catch and retry connection errors
+# todo: when downloading of .lin files completes, replace bbo_usernames.txt with a new list of usernames by using directory names. Otherwise update using dir/a:d/b > bbo_usernames.txt
 
-# requires BBO_USERNAME, BBO_PASSWORD be put into .env file.
+# requires BBO_USERNAME, BBO_PASSWORD be put into .env file. dotenv is used to load them.
 
 import requests
 from bs4 import BeautifulSoup
@@ -58,8 +58,8 @@ def BBO_Download_Lin_File(session, fetchlin, username):
         assert response.status_code == 200, [lin_url, response.status_code]
         assert 'Please login' not in response.text, 'BBO_Download_Lin_File: Cookie expiration? Try (re)logging into BBO using your browser.'
         # print(response.text)
-        # encoding='utf8' was needed for 3338576362-1678052162-Susie Q46.lin
-        with open(linfile, 'w', encoding='utf8') as f:
+        # encoding='utf-8' was needed for 3338576362-1678052162-Susie Q46.lin
+        with open(linfile, 'w', encoding='utf-8') as f:
             f.write(response.text)
         # Sleep a random number of seconds (between 1 and 5)
         sleep(uniform(.5, 2))
@@ -117,8 +117,8 @@ def BBO_Download_Lin_Files_Batch(session, start_date, end_date, username):
                 traveller_url, response.status_code]
             assert 'Please login' not in response.text, 'BBO_Download_Lin_Files_Batch: Cookie expiration? Try (re)logging into BBO using your browser.'
             # print(response.text)
-            # using encoding='utf8' for html files
-            with open(travellerfile, 'w', encoding='utf8') as f:
+            # using encoding='utf-8' for html files
+            with open(travellerfile, 'w', encoding='utf-8') as f:
                 f.write(response.text)
             # Sleep a random number of seconds (between 1 and 5)
             sleep(uniform(.5, 2))
@@ -152,8 +152,8 @@ def BBO_Download_Lin_Files_Batch(session, start_date, end_date, username):
             if tourneyFile.exists() and tourneyFile.stat().st_size > 100:
                 print(f"{tourneyFile=} exists. Skipping write file.")
             else:
-                # using encoding='utf8' for html files
-                with open(tourneyFile, 'w', encoding='utf8') as f:
+                # using encoding='utf-8' for html files
+                with open(tourneyFile, 'w', encoding='utf-8') as f:
                     f.write(response.text)
             # Sleep a random number of seconds (between 1 and 5)
             sleep(uniform(.5, 2))
@@ -269,7 +269,7 @@ if __name__ == '__main__':
     # read a list of bbo usernames to have their lin files downloaded. Any BBO player can be requested by any other user.
     # lin files will now be downloaded. Files already existing in the local download directory will not be re-downloaded. This makes restarts very quick.
 
-    with open('bbo_usernames.txt','r') as f:
+    with open('bbo_usernames.txt','r',encoding='utf-8') as f:
         usernames = f.read().split('\n')
 
     for username in usernames:  # download lin files of some frequent players
